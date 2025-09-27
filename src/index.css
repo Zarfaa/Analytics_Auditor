@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@theme {
+  --color-gray-50: oklch(0.984 0.003 247.858);
+  /* Primary */
+  --color-primary-ultra-light: #EAE6FE;
+  --color-primary-light: #C1B5FC;
+  --color-primary-semi-light: #6C50F9;
+  --color-primary: #2907CA;
+  --color-primary-semi-dark: #2306AD;
+  --color-primary-dark: #19047B;
+  --color-primary-ultra-dark: #0A0231;
+
+  /* Neutral */
+  --color-neutral-ultra-light: hsl(0, 0%, 95%);
+  --color-neutral-light: hsl(0, 0%, 85%);
+  --color-neutral-semi-light: hsl(0, 0%, 65%);
+  --color-neutral: hsl(0, 0%, 0%);
+  --color-neutral-semi-dark: hsl(0, 0%, 35%);
+  --color-neutral-dark: hsl(0, 0%, 25%);
+  --color-neutral-ultra-dark: hsl(0, 0%, 10%);
+
+    /* font-family: 'Poppins', sans-serif;
+  font-weight: 600; 
+  color: var(--color-neutral-ultra-dark);
+
+    font-family: 'Poppins', sans-serif;
+  color: var(--color-neutral); */
+}
