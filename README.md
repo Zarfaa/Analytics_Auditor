@@ -29,14 +29,14 @@ npm run build → Build production bundle
 
 ### ⚙️ Environment Variables
 Create a .env file in the root of your project and add:
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-VITE_APP1_URL=http://localhost:5173
-VITE_APP2_URL=http://localhost:3000
+- VITE_FIREBASE_API_KEY=
+- VITE_FIREBASE_AUTH_DOMAIN=
+- VITE_FIREBASE_PROJECT_ID=
+- VITE_FIREBASE_STORAGE_BUCKET=
+- VITE_FIREBASE_MESSAGING_SENDER_ID=
+- VITE_FIREBASE_APP_ID=
+- VITE_APP1_URL=http://localhost:5173
+- VITE_APP2_URL=http://localhost:3000
 
 
 ### 👨‍💻 Tech Stack
