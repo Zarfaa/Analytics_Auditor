@@ -47,9 +47,9 @@ function SlackIntegration() {
       const token = await user.getIdToken();
 
       await fetch(
-        "https://marketing-automation-43871816946.us-west1.run.app/api/slack/disconnect",
+        "https://marketing-automation-43871816946.us-west1.run.app/api/connections/slack",
         {
-          method: "POST",
+          method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         }
       );

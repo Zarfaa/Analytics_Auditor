@@ -9,7 +9,7 @@ function IntegrationCard({
   onDisconnect,
   multipleAccounts = [],
   addAccountLabel = "Add Another Account",
-  loadingAction = null, // 👈 now the only loader state
+  loadingAction = null,
 }) {
   const isLoading = Boolean(loadingAction);
 

@@ -6,6 +6,7 @@ function GoogleIntegration() {
   const [loading, setLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState(null);
   const [connectionLog, setConnectionLog] = useState(null);
+  const [message, setMessage] = useState(null);
 
   const isConnected = !!connectionLog?.google?.access_token;
 
@@ -49,35 +50,55 @@ function GoogleIntegration() {
     }
   };
 
+  // fetch connection log
+  const fetchConnectionLog = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return setConnectionLog({ error: "User not authenticated." });
+      const token = await user.getIdToken();
+      const res = await fetch(
+        "https://marketing-automation-43871816946.us-west1.run.app/api/connections",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      setConnectionLog(data);
+    } catch {
+      setConnectionLog({ error: "Failed to fetch connection log." });
+    }
+  };
+
   useEffect(() => {
-    const fetchConnectionLog = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) return setConnectionLog({ error: "User not authenticated." });
-        const token = await user.getIdToken();
-        const res = await fetch(
-          "https://marketing-automation-43871816946.us-west1.run.app/api/connections",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const data = await res.json();
-        setConnectionLog(data);
-      } catch {
-        setConnectionLog({ error: "Failed to fetch connection log." });
-      }
-    };
+    // Parse success/message from query params
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+    const msg = params.get("message");
+
+    if (success) {
+      setMessage(msg || "Google account connected successfully!");
+      // Clean up the URL so refresh doesn’t keep showing message
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     fetchConnectionLog();
   }, []);
 
   return (
-    <IntegrationCard
-      title="Google Integration"
-      description="Connect your Google account to sync and automate."
-      isConnected={isConnected}
-      details={{ email: connectionLog?.google?.email || "" }}
-      onConnect={handleGoogleConnect}
-      onDisconnect={handleGoogleDisconnect}
-      loadingAction={loadingAction}
-    />
+    <>
+      {message && (
+        <div className="p-2 mb-4 rounded bg-green-100 text-green-800">
+          {message}
+        </div>
+      )}
+      <IntegrationCard
+        title="Google Integration"
+        description="Connect your Google account to sync and automate."
+        isConnected={isConnected}
+        details={{ email: connectionLog?.google?.email || "" }}
+        onConnect={handleGoogleConnect}
+        onDisconnect={handleGoogleDisconnect}
+        loadingAction={loadingAction}
+      />
+    </>
   );
 }
 
