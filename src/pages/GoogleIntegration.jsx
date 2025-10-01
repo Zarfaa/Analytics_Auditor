@@ -4,9 +4,10 @@ import IntegrationCard from "../components/IntegrationCard";
 
 function GoogleIntegration() {
   const [loading, setLoading] = useState(false);
-  const [loadingAction, setLoadingAction] = useState(null);
-  const [connectionLog, setConnectionLog] = useState(null);
-  const [message, setMessage] = useState(null);
+  const [loadingAction, setLoadingAction] = useState<null | "connect" | "disconnect">(null);
+  const [connectionLog, setConnectionLog] = useState<any>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
 
   const isConnected = !!connectionLog?.google?.access_token;
 
@@ -68,14 +69,21 @@ function GoogleIntegration() {
   };
 
   useEffect(() => {
-    // Parse success/message from query params
+    // ✅ Handle query params
     const params = new URLSearchParams(window.location.search);
     const success = params.get("success");
     const msg = params.get("message");
 
-    if (success) {
+    if (success === "true") {
       setMessage(msg || "Google account connected successfully!");
-      // Clean up the URL so refresh doesn’t keep showing message
+      setIsError(false);
+    } else if (success === "false") {
+      setMessage(msg || "Failed to connect Google account.");
+      setIsError(true);
+    }
+
+    // Clean up URL (remove query params)
+    if (success) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
@@ -85,10 +93,15 @@ function GoogleIntegration() {
   return (
     <>
       {message && (
-        <div className="p-2 mb-4 rounded bg-green-100 text-green-800">
+        <div
+          className={`p-2 mb-4 rounded ${
+            isError ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
+          }`}
+        >
           {message}
         </div>
       )}
+
       <IntegrationCard
         title="Google Integration"
         description="Connect your Google account to sync and automate."
