@@ -15,6 +15,7 @@ import Home from "./pages/Home";
 import { auth } from "./firebase";
 import { signOut } from "firebase/auth";
 import HorizontalNavbar from "./components/HorizontalNavbar";
+import { Toaster } from "react-hot-toast"
 
 function App() {
   const [user, setUser] = useState(null);
@@ -100,7 +101,7 @@ function App() {
   return (
     <Router>
       <div className="App flex">
-
+     <Toaster position="top-right" reverseOrder={false} />
         {!user ? (
           <HorizontalNavbar onLogout={handleLogout} />
         ) : (
