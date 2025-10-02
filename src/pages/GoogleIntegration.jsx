@@ -4,9 +4,9 @@ import IntegrationCard from "../components/IntegrationCard";
 
 function GoogleIntegration() {
   const [loading, setLoading] = useState(false);
-  const [loadingAction, setLoadingAction] = useState<null | "connect" | "disconnect">(null);
-  const [connectionLog, setConnectionLog] = useState<any>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState(null);
+  const [connectionLog, setConnectionLog] = useState(null);
+  const [message, setMessage] = useState(null);
   const [isError, setIsError] = useState(false);
 
   const isConnected = !!connectionLog?.google?.access_token;
