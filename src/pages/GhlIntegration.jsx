@@ -118,7 +118,7 @@ function GhlIntegration() {
 
   return (
     <IntegrationCard
-      title="Go High Level Integration"
+      title="Go High Level"
       description="Connect your GHL accounts to manage automation."
       multipleAccounts={connectionLog?.ghl || []}
       onConnect={handleGhlConnect}

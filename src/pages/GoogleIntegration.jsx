@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { auth } from "../firebase";
 import IntegrationCard from "../components/IntegrationCard";
 import toast from "react-hot-toast";
@@ -103,15 +103,19 @@ function GoogleIntegration() {
 
   return (
     <>
-      <IntegrationCard
-        title="Google Integration"
-        description="Connect your Google account to sync and automate."
-        isConnected={isConnected}
-        details={{ email: connectionLog?.google?.email || "" }}
-        onConnect={handleGoogleConnect}
-        onDisconnect={handleGoogleDisconnect}
-        loadingAction={loadingAction}
-      />
+      <>
+        <IntegrationCard
+          title="Google"
+          description="Connect your Google account to sync and automate."
+          isConnected={isConnected}
+          details={{
+            expiry: connectionLog?.google?.expiry_date || ""
+          }}
+          onConnect={handleGoogleConnect}
+          onDisconnect={handleGoogleDisconnect}
+          loadingAction={loadingAction}
+        />
+      </>
     </>
   );
 }

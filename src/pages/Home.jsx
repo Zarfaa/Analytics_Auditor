@@ -1,10 +1,17 @@
-import { FaSignOutAlt } from "react-icons/fa";
+import { FaSignOutAlt, FaUser, FaEnvelope } from "react-icons/fa";
+import { useState } from "react";
 import toast from "react-hot-toast";
+import Spinner from "../components/Spinner";
 
 function Home({ user, onLogout }) {
+  const [isEnding, setIsEnding] = useState(false);
+
   const handleEndOnboarding = () => {
+    setIsEnding(true);
     toast.success("Onboarding ended successfully!");
-    onLogout(); 
+    setTimeout(() => {
+      onLogout();
+    }, 1000);
   };
 
   return (
@@ -25,7 +32,7 @@ function Home({ user, onLogout }) {
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold text-primary-dark">Welcome back,</h1>
+              <h1 className="text-2xl font-bold text-primary-dark">Welcome,</h1>
               <p className="text-neutral-semi-dark">{user.displayName || " "}</p>
             </div>
           </div>
@@ -33,12 +40,16 @@ function Home({ user, onLogout }) {
 
         <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-6 rounded-xl shadow-xl bg-primary-ultra-light transition-all duration-300 hover:shadow-xl hover:scale-105">
-            <h2 className="text-sm font-bold text-primary mb-1">Full Name</h2>
+            <h2 className="text-sm font-bold text-primary mb-1 flex items-center gap-2">
+              <FaUser /> Full Name
+            </h2>
             <p className="text-lg text-neutral-dark">{user.displayName || " "}</p>
           </div>
 
           <div className="p-6 rounded-xl shadow-xl bg-primary-ultra-light transition-all duration-300 hover:shadow-xl hover:scale-105">
-            <h2 className="text-sm font-bold text-primary mb-1">Email</h2>
+            <h2 className="text-sm font-bold text-primary mb-1 flex items-center gap-2">
+              <FaEnvelope /> Email
+            </h2>
             <p className="text-lg text-neutral-dark">{user.email || " "}</p>
           </div>
         </div>
@@ -47,9 +58,16 @@ function Home({ user, onLogout }) {
           <button
             onClick={handleEndOnboarding}
             className="flex items-center gap-2 bg-primary-dark hover:scale-105 text-white px-6 py-2 rounded-lg shadow-md transition"
+            disabled={isEnding}
           >
-            <FaSignOutAlt className="text-lg" />
-            <span>End Onboarding</span>
+            {isEnding ? (
+              <Spinner />
+            ) : (
+              <>
+                <FaSignOutAlt className="text-lg" />
+                <span>End Onboarding</span>
+              </>
+            )}
           </button>
         </div>
 

@@ -3,13 +3,17 @@ import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase";
 import logo from "../assets/Analytics_Audtor_logo.png";
 import toast from "react-hot-toast";
+import { motion } from "framer-motion"; 
 
 function Login({ onLogin }) {
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
     setError("");
+    setLoading(true);
     const provider = new GoogleAuthProvider();
+
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
@@ -23,52 +27,62 @@ function Login({ onLogin }) {
 
       if (onLogin) onLogin(userInfo);
 
-      toast.success(`Welcome ${user.displayName}! Onboarding successful 🎉`);
+      toast.success(`Welcome, ${user.displayName}! You’re all set to use Analytics Auditor.`);
     } catch (err) {
       setError(err.message);
       toast.error("Google login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-neutral-ultra-light px-4 sm:px-6">
-      <div className="card w-full max-w-md shadow-xl bg-neutral-ultra-light rounded-xl">
-        <div className="bg-primary-light p-4 sm:p-6 rounded-t-xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <div className="text-center sm:text-left">
-            <h2 className="text-lg sm:text-xl font-semibold text-primary">Welcome!</h2>
-            <p className="text-xs sm:text-sm text-white">Authenticate to continue</p>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4 sm:px-6">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md bg-white shadow-2xl rounded-2xl overflow-hidden"
+      >
+
+        <div className="bg-primary-light p-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold text-primary-dark">Almost done!</h2>
+            <p className="text-sm text-white/80">Link Google to complete setup</p>
           </div>
-          <div className="flex justify-center sm:justify-end">
-            <img src={logo} alt="Analytics Auditor Logo" className="h-8 w-auto" />
-          </div>
+          <img src={logo} alt="Analytics Auditor Logo" className="h-8 w-auto" />
         </div>
 
-        <div className="p-8 space-y-6 flex flex-col items-center text-center my-8 ">
-          <p className="text-sm text-gray-600 max-w-sm">
-            Please authenticate with your Google account to start your onboarding process.
+
+        <div className="p-8 text-center space-y-6">
+          <p className="text-sm text-gray-600">
+            Sign in with your Google account to start your onboarding process.
           </p>
-          <div
-            className="p-2 space-y-2 flex flex-col items-center bg-primary-light text-center my-8 
-                border border-gray-300 text-primary-dark 
-                w-full h-full rounded-xl shadow-lg transition duration-200"
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className={`flex items-center justify-center gap-3 w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-xl shadow-md transition duration-200 ${
+              loading ? "opacity-70 cursor-not-allowed" : "hover:bg-gray-100"
+            }`}
           >
-            <h2 className="text-xl font-bold text-primary max-w-sm">Sign In With</h2>
+            <img
+              src="https://www.svgrepo.com/show/475656/google-color.svg"
+              alt="Google Logo"
+              className="h-5 w-5"
+            />
+            {loading ? "Signing you in..." : "Sign in with Google"}
+          </motion.button>
 
-            <button
-              onClick={handleGoogleLogin}
-              className="flex items-center justify-center bg-white w-10 h-10 rounded-full"
-            >
-              <img
-                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                alt="Google Logo"
-                className="h-6 w-6"
-              />
-            </button>
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
-          </div>
+          <p className="text-xs text-gray-400 mt-4">
+            We’ll never post or share anything without your permission.
+          </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

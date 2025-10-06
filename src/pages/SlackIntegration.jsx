@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { auth } from "../firebase";
 import IntegrationCard from "../components/IntegrationCard";
 import toast from "react-hot-toast";
@@ -113,7 +113,7 @@ function SlackIntegration() {
 
   return (
     <IntegrationCard
-      title="Slack Integration"
+      title="Slack"
       description="Connect your Slack workspace to enable collaboration."
       isConnected={isConnected}
       details={{
