@@ -37,6 +37,7 @@ Create a .env file in the root of your project and add:
 - VITE_FIREBASE_APP_ID=
 - VITE_APP1_URL=http://localhost:5173
 - VITE_APP2_URL=http://localhost:3000
+- VITE_REDIRECTION_URL=http://localhost:3000
 
 
 ### 👨‍💻 Tech Stack
