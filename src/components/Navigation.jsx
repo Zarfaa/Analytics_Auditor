@@ -1,19 +1,11 @@
 import { Link } from "react-router-dom";
-import { FaSignOutAlt } from "react-icons/fa";
 import logo from "../assets/Analytics_Audtor_logo.png";
 import { useLocation } from "react-router-dom";
 
-const Navigation = ({ onLogout }) => {
-  const app1Url = import.meta.env.VITE_APP1_URL;
+const Navigation = () => {
 
   const location = useLocation();
-  const isActive = (path) => location.pathname === path;
-
-  const handleLogout = () => {
-    localStorage.removeItem("token"),
-    onLogout();
-    window.location.href = app1Url;
-  };
+  const isActive = (path) => location.pathname === path
 
 
   return (
@@ -50,16 +42,6 @@ const Navigation = ({ onLogout }) => {
           </Link>
         </li>
       </ul>
-
-      <div className="bg-neutral-ultraLight p-4 rounded-lg">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 bg-primary hover:scale-105 text-white px-6 py-2 rounded-lg shadow-md transition"
-        >
-          <FaSignOutAlt className="text-lg" />
-          <span>Logout</span>
-        </button>
-      </div>
     </nav>
   );
 };

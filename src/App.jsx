@@ -10,13 +10,13 @@ import Navigation from "./components/Navigation";
 import SlackIntegration from "./pages/SlackIntegration";
 import GoogleIntegration from "./pages/GoogleIntegration";
 import GhlIntegration from "./pages/GhlIntegration";
-import Login from "./pages/Login";
 import Home from "./pages/Home";
 import { auth } from "./firebase";
 import { signOut } from "firebase/auth";
 import HorizontalNavbar from "./components/HorizontalNavbar";
 import { Toaster } from "react-hot-toast"
 import Spinner from "./components/Spinner";
+import ProtectedLogin from "./components/ProtectedLogin.wrapper";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -45,15 +45,14 @@ function App() {
       <Spinner />
     );
 
-
   const handleLogout = async () => {
     localStorage.removeItem("token");
     await signOut(auth);
     setUser(null);
-    const app1Url = import.meta.env.VITE_APP1_URL;
-    window.location.replace(app1Url);
-  };
 
+    const app1Url = import.meta.env.VITE_APP1_URL;
+    window.location.href = `${app1Url}?loggedOut=true`;
+  };
 
   const handleEndOnboarding = async () => {
     await signOut(auth);
@@ -76,7 +75,7 @@ function App() {
             {!user ? (
               <Route
                 path="/*"
-                element={<Login onLogin={() => setUser(auth.currentUser)} />}
+                element={<ProtectedLogin onLogin={() => setUser(auth.currentUser)} />}
               />
             ) : (
               <>

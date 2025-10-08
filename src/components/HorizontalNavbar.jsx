@@ -6,15 +6,13 @@ const HorizontalNavbar = ({ onLogout }) => {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        if (onLogout) onLogout();
-        window.location.href = app1Url;
+        if (onLogout) onLogout(); // triggers App.jsx logout logic
+        window.location.href = `${app1Url}?loggedOut=true`; // tell App1 to clear token too
     };
-
 
     return (
         <nav className="w-full bg-primary-ultra-dark text-white flex items-center justify-between px-6 py-8 fixed top-0 left-0 z-50">
-
-           <div className="flex items-center justify-center bg-white rounded-lg h-10 w-30">
+            <div className="flex items-center justify-center bg-white rounded-lg h-10 w-30">
                 <img
                     src={logo}
                     alt="Analytics Auditor Logo"
