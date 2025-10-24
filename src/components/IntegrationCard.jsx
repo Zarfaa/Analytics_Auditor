@@ -1,6 +1,5 @@
 import { FaPlus, FaGoogle, FaSlack, FaBuilding } from "react-icons/fa";
 import { MdIntegrationInstructions } from "react-icons/md";
-import React from "react";
 
 const ICONS_BY_TITLE = {
   "Slack": FaSlack,

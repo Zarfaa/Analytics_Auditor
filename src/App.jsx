@@ -17,6 +17,8 @@ import HorizontalNavbar from "./components/HorizontalNavbar";
 import { Toaster } from "react-hot-toast"
 import Spinner from "./components/Spinner";
 import ProtectedLogin from "./components/ProtectedLogin.wrapper";
+import BigQueryIntegration from "./pages/BigQuery";
+import Workflows from "./pages/WorkFlow";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -92,6 +94,8 @@ function App() {
                 <Route path="/slack-integration" element={<SlackIntegration />} />
                 <Route path="/google-integration" element={<GoogleIntegration />} />
                 <Route path="/ghl-integration" element={<GhlIntegration />} />
+                <Route path="/gbq-integration" element={<BigQueryIntegration />} />
+                <Route path="/workflows" element={<Workflows/>} />
                 <Route path="*" element={<Navigate to="/" />} />
               </>
             )}

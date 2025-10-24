@@ -6,8 +6,8 @@ const HorizontalNavbar = ({ onLogout }) => {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        if (onLogout) onLogout(); // triggers App.jsx logout logic
-        window.location.href = `${app1Url}?loggedOut=true`; // tell App1 to clear token too
+        if (onLogout) onLogout(); 
+        window.location.href = `${app1Url}?loggedOut=true`; 
     };
 
     return (
