@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { auth } from "../firebase";
 import toast from "react-hot-toast";
 import { FaPlayCircle, FaPencilAlt, FaTrash, FaSearch } from "react-icons/fa";
 import Spinner from "../components/Spinner";
 import ConfirmModal from "../components/ConfirmModal";
 import CreateWorkflowModal from "../components/createModal";
-
-const BASE_URL = "https://ghl-automation-apis-43871816946.us-west1.run.app";
+import * as workflowService from "../service/workflowServices";
 
 function Workflows() {
   const [workflows, setWorkflows] = useState([]);
@@ -17,16 +15,12 @@ function Workflows() {
   const [hasMore, setHasMore] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState(null);
   const [newModalOpen, setNewModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ workflowName: "", table: "" });
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    workflowId: null,
-    workflowName: "",
-  });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, workflowId: null, workflowName: "" });
 
   const [projects, setProjects] = useState([]);
   const [datasets, setDatasets] = useState([]);
   const [tables, setTables] = useState([]);
+
   const [newWorkflow, setNewWorkflow] = useState({
     workflowName: "",
     workflowType: "contacts",
@@ -35,82 +29,21 @@ function Workflows() {
     table: "",
   });
 
-  const getAuthToken = async () => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated.");
-    return await user.getIdToken();
-  };
+  const [editForm, setEditForm] = useState({
+    workflowName: "",
+    workflowType: "",
+    projectId: "",
+    dataset: "",
+    table: "",
+  });
 
-  const fetchProjects = async () => {
-    try {
-      const token = await getAuthToken();
-      const res = await fetch(`${BASE_URL}/api/projects`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setProjects(data.projects || []);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to fetch projects");
-    }
-  };
-
-  const fetchDatasets = async (projectId) => {
-    try {
-      if (!projectId) return;
-      const token = await getAuthToken();
-      const res = await fetch(`${BASE_URL}/api/datasets?projectId=${projectId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setDatasets(data.datasets || []);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to fetch datasets");
-    }
-  };
-
-  const fetchTables = async (projectId, dataset) => {
-    try {
-      if (!projectId || !dataset) return;
-      const token = await getAuthToken();
-      const res = await fetch(`${BASE_URL}/api/tables?projectId=${projectId}&dataset=${dataset}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setTables(data.tables || []);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to fetch tables");
-    }
-  };
-
-  const openNewWorkflowModal = () => {
+  const openNewWorkflowModal = async () => {
     setNewModalOpen(true);
-    fetchProjects();
-  };
-
-  const createWorkflow = async () => {
-    const { workflowName, workflowType, projectId, dataset, table } = newWorkflow;
-    if (!workflowName || !workflowType || !projectId || !dataset || !table) {
-      toast.error("All fields are required");
-      return;
-    }
     try {
-      const token = await getAuthToken();
-      const res = await fetch(`${BASE_URL}/api/workflows/create`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newWorkflow),
-      });
-      if (!res.ok) throw new Error("Failed to create workflow");
-      const created = await res.json();
-      setWorkflows((prev) => [created, ...prev]);
-      toast.success("Workflow created successfully!");
-      setNewModalOpen(false);
+      const projectsList = await workflowService.fetchProjects();
+      setProjects(projectsList);
+      setDatasets([]);
+      setTables([]);
       setNewWorkflow({
         workflowName: "",
         workflowType: "contacts",
@@ -119,28 +52,38 @@ function Workflows() {
         table: "",
       });
     } catch (err) {
+      toast.error("Failed to fetch projects");
       console.error(err);
-      toast.error("Error creating workflow");
     }
   };
 
-  useEffect(() => {
-    if (newWorkflow.projectId) fetchDatasets(newWorkflow.projectId);
-  }, [newWorkflow.projectId]);
+  const fetchDatasets = async (projectId) => {
+    if (!projectId) return;
+    try {
+      const list = await workflowService.fetchDatasets(projectId);
+      setDatasets(list);
+      setTables([]);
+    } catch (err) {
+      toast.error("Failed to fetch datasets");
+      console.error(err);
+    }
+  };
 
-  useEffect(() => {
-    if (newWorkflow.projectId && newWorkflow.dataset) fetchTables(newWorkflow.projectId, newWorkflow.dataset);
-  }, [newWorkflow.projectId, newWorkflow.dataset]);
+  const fetchTables = async (projectId, dataset) => {
+    if (!projectId || !dataset) return;
+    try {
+      const list = await workflowService.fetchTables(projectId, dataset);
+      setTables(list);
+    } catch (err) {
+      toast.error("Failed to fetch tables");
+      console.error(err);
+    }
+  };
 
   const fetchWorkflows = async (newOffset = 0) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const token = await getAuthToken();
-      const res = await fetch(`${BASE_URL}/api/workflows/test/list?offset=${newOffset}&limit=${limit}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch workflows");
-      const data = await res.json();
+      const data = await workflowService.fetchWorkflows(newOffset, limit);
       setWorkflows(data.data || []);
       setOffset(data.offset || 0);
       setTotalCount(data.totalCount || 0);
@@ -153,88 +96,46 @@ function Workflows() {
     }
   };
 
-  const runWorkflow = async (workflow) => {
-    if (!workflow) return;
-    toast.loading(`Running ${workflow.workflowName}...`);
+  const createNewWorkflow = async () => {
+    const { workflowName, workflowType, projectId, dataset, table } = newWorkflow;
+    if (!workflowName || !workflowType || !projectId || !dataset || !table) {
+      toast.error("All fields are required");
+      return;
+    }
     try {
-      const token = await getAuthToken();
-      let endpoint = "";
-      if (workflow.workflowType === "contacts") endpoint = "/contacts/run-workflow";
-      else if (workflow.workflowType === "opportunities") endpoint = "/opportunities/run-workflow";
-      else if (workflow.workflowType === "callReports") endpoint = "/call-reports/run-workflow";
-
-      const res = await fetch(`${BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ workflowId: workflow.id }),
-      });
-      if (!res.ok) throw new Error("Failed to run workflow");
-      toast.success(`${workflow.workflowName} executed successfully!`);
+      const createdWorkflow = await workflowService.createWorkflow(newWorkflow);
+      toast.success("Workflow created successfully!");
+      setWorkflows((prev) => [createdWorkflow, ...prev]);
+      setNewModalOpen(false);
+      setNewWorkflow({ workflowName: "", workflowType: "contacts", projectId: "", dataset: "", table: "" });
     } catch (err) {
-      toast.error(`Error running ${workflow.workflowName}`);
+      toast.error("Error creating workflow");
       console.error(err);
     }
   };
 
-  const confirmDeleteWorkflow = (workflow) => {
-    setConfirmModal({
-      isOpen: true,
-      workflowId: workflow.id,
-      workflowName: workflow.workflowName,
-    });
-  };
-
-  const handleDeleteConfirmed = async () => {
-    const { workflowId } = confirmModal;
-    setConfirmModal({ ...confirmModal, isOpen: false });
-
-    try {
-      const token = await getAuthToken();
-      const res = await fetch(`${BASE_URL}/workflows/delete/${workflowId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to delete workflow");
-      toast.success("Workflow deleted successfully!");
-      setWorkflows((prev) => prev.filter((w) => w.id !== workflowId));
-    } catch (err) {
-      toast.error("Error deleting workflow");
-      console.error(err);
-    }
-  };
-
-  const startEditingWorkflow = (workflow) => {
+  const startEditingWorkflow = async (workflow) => {
     setEditingWorkflow(workflow);
-    setEditForm({ workflowName: workflow.workflowName, table: workflow.table });
+    setEditForm({ ...workflow });
+
+    try {
+      const projectsList = await workflowService.fetchProjects();
+      setProjects(projectsList);
+      if (workflow.projectId) await fetchDatasets(workflow.projectId);
+      if (workflow.projectId && workflow.dataset) await fetchTables(workflow.projectId, workflow.dataset);
+    } catch (err) {
+      toast.error("Failed to load data for editing");
+      console.error(err);
+    }
   };
 
   const saveEditedWorkflow = async () => {
     if (!editingWorkflow) return;
     try {
-      const token = await getAuthToken();
-      const res = await fetch(`${BASE_URL}/api/workflows/edit/${editingWorkflow.id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          workflowName: editForm.workflowName,
-          table: editForm.table,
-          workflowType: editingWorkflow.workflowType,
-          projectId: editingWorkflow.projectId,
-          dataset: editingWorkflow.dataset,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to update workflow");
+      await workflowService.updateWorkflow(editingWorkflow.id, editForm);
       toast.success("Workflow updated successfully!");
       setWorkflows((prev) =>
-        prev.map((wf) =>
-          wf.id === editingWorkflow.id ? { ...wf, workflowName: editForm.workflowName, table: editForm.table } : wf
-        )
+        prev.map((wf) => (wf.id === editingWorkflow.id ? { ...wf, ...editForm } : wf))
       );
       setEditingWorkflow(null);
     } catch (err) {
@@ -243,18 +144,48 @@ function Workflows() {
     }
   };
 
+  const confirmDeleteWorkflow = (workflow) => {
+    setConfirmModal({ isOpen: true, workflowId: workflow.id, workflowName: workflow.workflowName });
+  };
+
+  const handleDeleteConfirmed = async () => {
+    try {
+      await workflowService.deleteWorkflow(confirmModal.workflowId);
+      toast.success("Workflow deleted successfully!");
+      setWorkflows((prev) => prev.filter((wf) => wf.id !== confirmModal.workflowId));
+    } catch (err) {
+      toast.error("Error deleting workflow");
+      console.error(err);
+    } finally {
+      setConfirmModal({ ...confirmModal, isOpen: false });
+    }
+  };
+
+  const runWorkflow = async (workflow) => {
+    toast.loading(`Running ${workflow.workflowName}...`);
+    try {
+      await workflowService.runWorkflow(workflow);
+      toast.success(`${workflow.workflowName} executed successfully!`);
+    } catch (err) {
+      toast.error(`Error running ${workflow.workflowName}`);
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchWorkflows();
   }, []);
 
-  const handlePrevPage = () => {
-    if (offset > 0) fetchWorkflows(offset - limit);
-  };
+  useEffect(() => {
+    if (newWorkflow.projectId) fetchDatasets(newWorkflow.projectId);
+  }, [newWorkflow.projectId]);
 
-  const handleNextPage = () => {
-    if (hasMore) fetchWorkflows(offset + limit);
-  };
+  useEffect(() => {
+    if (newWorkflow.projectId && newWorkflow.dataset) fetchTables(newWorkflow.projectId, newWorkflow.dataset);
+  }, [newWorkflow.projectId, newWorkflow.dataset]);
 
+  const handlePrevPage = () => { if (offset > 0) fetchWorkflows(offset - limit); };
+  const handleNextPage = () => { if (hasMore) fetchWorkflows(offset + limit); };
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -297,7 +228,7 @@ function Workflows() {
 
         <button
           className="ml-4 bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark whitespace-nowrap"
-          onClick={() => setNewModalOpen(true)}
+          onClick={openNewWorkflowModal}
         >
           + New Workflow
         </button>
@@ -335,42 +266,124 @@ function Workflows() {
                         {editingWorkflow?.id === wf.id ? (
                           <input
                             value={editForm.workflowName}
-                            onChange={(e) => setEditForm({ ...editForm, workflowName: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, workflowName: e.target.value })
+                            }
                             className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
                           />
                         ) : (
                           wf.workflowName
                         )}
                       </td>
-                      <td className="px-4 py-3">{wf.workflowType}</td>
-                      <td className="px-4 py-3">{wf.projectId}</td>
-                      <td className="px-4 py-3">{wf.dataset}</td>
+
                       <td className="px-4 py-3">
                         {editingWorkflow?.id === wf.id ? (
-                          <input
-                            value={editForm.table}
-                            onChange={(e) => setEditForm({ ...editForm, table: e.target.value })}
+                          <select
+                            value={editForm.workflowType}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, workflowType: e.target.value })
+                            }
                             className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                          />
+                          >
+                            <option value="contacts">Contacts</option>
+                            <option value="opportunities">Opportunities</option>
+                            <option value="callReports">Call Reports</option>
+                          </select>
+                        ) : (
+                          wf.workflowType
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {editingWorkflow?.id === wf.id ? (
+                          <select
+                            value={editForm.projectId}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                projectId: e.target.value,
+                                dataset: "",
+                                table: "",
+                              })
+                            }
+                            className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                          >
+                            <option value="">Select Project</option>
+                            {projects.map((projectId) => (
+                              <option key={projectId} value={projectId}>
+                                {projectId}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          wf.projectId
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {editingWorkflow?.id === wf.id ? (
+                          <select
+                            value={editForm.dataset}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                dataset: e.target.value,
+                                table: "",
+                              })
+                            }
+                            className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                            disabled={!datasets.length}
+                          >
+                            <option value="">Select Dataset</option>
+                            {datasets.map((d) => (
+                              <option key={d} value={d}>
+                                {d}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          wf.dataset
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {editingWorkflow?.id === wf.id ? (
+                          <select
+                            value={editForm.table}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, table: e.target.value })
+                            }
+                            className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                            disabled={!tables.length}
+                          >
+                            <option value="">Select Table</option>
+                            {tables.map((t) => (
+                              <option key={t} value={t}>
+                                {t}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           wf.table
                         )}
                       </td>
+
                       <td className="px-4 py-3">{new Date(wf.createdAt).toLocaleString()}</td>
+
                       <td className="px-4 py-3 text-gray-600">{wf.uid}</td>
-                      <td className="px-4 py-3">
+
+                      <td className="px-4 py-3 text-right">
                         <div className="flex justify-end items-center space-x-2">
                           {editingWorkflow?.id === wf.id ? (
                             <>
                               <button
                                 onClick={saveEditedWorkflow}
-                                className="flex items-center gap-1 bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition"
+                                className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition"
                               >
                                 Save
                               </button>
                               <button
                                 onClick={() => setEditingWorkflow(null)}
-                                className="flex items-center gap-1 bg-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-400 transition"
+                                className="bg-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-400 transition"
                               >
                                 Cancel
                               </button>
@@ -378,39 +391,32 @@ function Workflows() {
                           ) : (
                             <>
                               <button
-                                type="button"
                                 onClick={() => runWorkflow(wf)}
-                                className="flex items-center gap-1 bg-primary text-white px-3 py-1 rounded hover:bg-primary-dark transition"
+                                className="bg-primary text-white px-3 py-1 rounded hover:bg-primary-dark transition flex items-center gap-1"
                               >
                                 <FaPlayCircle className="w-4 h-4" /> Run
                               </button>
-
                               <button
-                                type="button"
                                 onClick={() => startEditingWorkflow(wf)}
-                                className="flex items-center gap-1 bg-primary text-white px-3 py-1 rounded hover:bg-primary transition"
+                                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition flex items-center gap-1"
                               >
                                 <FaPencilAlt className="w-4 h-4" /> Edit
                               </button>
-
                               <button
-                                type="button"
                                 onClick={() => confirmDeleteWorkflow(wf)}
-                                className="flex items-center gap-1 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
+                                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition flex items-center gap-1"
                               >
                                 <FaTrash className="w-4 h-4" /> Delete
                               </button>
-
-
                             </>
                           )}
                         </div>
                       </td>
-
                     </tr>
                   ))
                 )}
               </tbody>
+
             </table>
           </div>
 
@@ -446,6 +452,12 @@ function Workflows() {
       <CreateWorkflowModal
         isOpen={newModalOpen}
         onClose={() => setNewModalOpen(false)}
+        newWorkflow={newWorkflow}
+        setNewWorkflow={setNewWorkflow}
+        projects={projects}
+        datasets={datasets}
+        tables={tables}
+        createWorkflow={createNewWorkflow}
         onCreated={(createdWorkflow) => {
           setWorkflows((prev) => [createdWorkflow, ...prev]);
           setNewModalOpen(false);
@@ -457,37 +469,8 @@ function Workflows() {
             table: "",
           });
         }}
-        newWorkflow={newWorkflow}
-        setNewWorkflow={setNewWorkflow}
-        projects={projects}
-        datasets={datasets}
-        tables={tables}
-        createWorkflow={async () => {
-          const { workflowName, workflowType, projectId, dataset, table } = newWorkflow;
-          if (!workflowName || !workflowType || !projectId || !dataset || !table) {
-            toast.error("All fields are required");
-            return;
-          }
-          try {
-            const token = await getAuthToken();
-            const res = await fetch(`${BASE_URL}/api/workflows/create`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(newWorkflow),
-            });
-            if (!res.ok) throw new Error("Failed to create workflow");
-            const created = await res.json();
-            toast.success("Workflow created successfully!");
-            onCreated(created); // notify parent
-          } catch (err) {
-            console.error(err);
-            toast.error("Error creating workflow");
-          }
-        }}
       />
+
 
     </div>
   );

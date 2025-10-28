@@ -1,40 +1,24 @@
-import React, { useState, useEffect } from "react";
-import { auth } from "../firebase";
+import { useState, useEffect } from "react";
 import IntegrationCard from "../components/IntegrationCard";
+import Spinner from "../components/Spinner";
 import toast from "react-hot-toast";
+import {
+  fetchConnectionLog,
+  connectIntegration,
+  disconnectIntegration,
+} from "../service/integrationService";
 
 function SlackIntegration() {
-  const [connectionLog, setConnectionLog] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
-  const redirect_uri = import.meta.env.VITE_REDIRECTION_URL;
-  const isConnected = connectionLog?.slack || false;
+  const [connectionLog, setConnectionLog] = useState(null);
+
+  const isConnected = !!connectionLog?.slack?.accessToken;
 
   const handleSlackConnect = async () => {
     setLoadingAction("connect");
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        toast.error("User not authenticated.");
-        return;
-      }
-      const token = await user.getIdToken();
-
-      const res = await fetch(
-        "https://marketing-automation-43871816946.us-west1.run.app/api/oauth/state-token",
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to initiate Slack connection");
-
-      const data = await res.json();
-      if (data.stateToken) {
-        window.location.href = `https://marketing-automation-43871816946.us-west1.run.app/slack/oauth?state=${data.stateToken}&redirect_uri=${redirect_uri}/slack-integration`;
-      } else {
-        toast.error("Failed to get Slack connection token.");
-      }
+      await connectIntegration("slack", "slack-integration");
     } catch (err) {
       console.error("Slack connect failed:", err);
       toast.error("Error connecting Slack workspace.");
@@ -46,84 +30,60 @@ function SlackIntegration() {
   const handleSlackDisconnect = async () => {
     setLoadingAction("disconnect");
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        toast.error("User not authenticated.");
-        return;
-      }
-      const token = await user.getIdToken();
-
-      const res = await fetch(
-        "https://marketing-automation-43871816946.us-west1.run.app/api/connections/slack",
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to disconnect Slack");
+      await disconnectIntegration("slack");
       sessionStorage.removeItem("slackToastShown");
-      setConnectionLog((prev) => ({
-        ...prev,
-        slack: null,
-      }));
+      await loadConnections();
       toast.success("Slack disconnected successfully!");
     } catch (err) {
+      console.error("Slack disconnect failed:", err);
       toast.error("Error disconnecting Slack.");
     } finally {
       setLoadingAction(null);
     }
   };
 
-  useEffect(() => {
-    const fetchConnectionLog = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) {
-          setConnectionLog({ error: "User not authenticated." });
-          toast.error("User not authenticated.");
-          return;
-        }
+  const loadConnections = async () => {
+    try {
+      const data = await fetchConnectionLog();
+      setConnectionLog(data);
 
-        const token = await user.getIdToken();
-        const res = await fetch(
-          "https://marketing-automation-43871816946.us-west1.run.app/api/connections",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        if (!res.ok) throw new Error("Failed to fetch connection log");
-
-        const data = await res.json();
-
-        if (data.slack.accessToken && !connectionLog?.slack) {
-          if (!sessionStorage.getItem("slackToastShown")) {
-            toast.success("Slack connected successfully!");
-            sessionStorage.setItem("slackToastShown", "true");
-          }
-        }
-
-        setConnectionLog(data);
-      } catch (err) {
-        setConnectionLog({ error: "Failed to fetch connection log." });
+      if (data?.slack?.accessToken && !sessionStorage.getItem("slackToastShown")) {
+        toast.success("Slack connected successfully!");
+        sessionStorage.setItem("slackToastShown", "true");
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch connection log:", err);
+      toast.error("Failed to fetch connection log.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchConnectionLog();
+  useEffect(() => {
+    loadConnections();
   }, []);
 
   return (
-    <IntegrationCard
-      title="Slack"
-      description="Connect your Slack workspace to enable collaboration."
-      isConnected={isConnected}
-      details={{
-        teamName: connectionLog?.slack?.teamName,
-        slackUserId: connectionLog?.slack?.slackUserId,
-      }}
-      onConnect={handleSlackConnect}
-      onDisconnect={handleSlackDisconnect}
-      loadingAction={loadingAction}
-    />
+    <div className="p-6">
+      {loading ? (
+        <div className="flex justify-center items-center h-[60vh]">
+          <Spinner size="w-16 h-16" />
+        </div>
+      ) : (
+        <IntegrationCard
+          title="Slack"
+          description="Connect your Slack workspace to enable collaboration."
+          isConnected={isConnected}
+          details={{
+            teamName: connectionLog?.slack?.teamName,
+            slackUserId: connectionLog?.slack?.slackUserId,
+          }}
+          onConnect={handleSlackConnect}
+          onDisconnect={handleSlackDisconnect}
+          loadingAction={loadingAction}
+        />
+      )}
+    </div>
   );
 }
 

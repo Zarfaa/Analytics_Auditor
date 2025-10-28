@@ -1,122 +1,87 @@
-import React, { useState, useEffect } from "react";
-import { auth } from "../firebase";
+import { useState, useEffect } from "react";
 import IntegrationCard from "../components/IntegrationCard";
+import Spinner from "../components/Spinner";
 import toast from "react-hot-toast";
+import {
+  fetchConnectionLog,
+  connectIntegration,
+  disconnectIntegration,
+} from "../service/integrationService";
 
 function GoogleIntegration() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
   const [connectionLog, setConnectionLog] = useState(null);
-  const redirect_uri = import.meta.env.VITE_REDIRECTION_URL;
+
   const isConnected = !!connectionLog?.google?.access_token;
 
+
   const handleGoogleConnect = async () => {
-    setLoading(true);
     setLoadingAction("connect");
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        toast.error("User not authenticated.");
-        return;
-      }
-      const token = await user.getIdToken();
-      const res = await fetch(
-        "https://marketing-automation-43871816946.us-west1.run.app/api/oauth/state-token",
-        { method: "POST", headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) throw new Error("Failed to start Google connection");
-      const data = await res.json();
-      if (data.stateToken) {
-        window.location.href = `https://marketing-automation-43871816946.us-west1.run.app/auth/google?state=${data.stateToken}&redirect_uri=${redirect_uri}/google-integration`;
-      } else {
-        toast.error("Failed to get Google connection token.");
-      }
+      await connectIntegration("google", "google-integration");
     } catch (err) {
+      console.error("Google connect failed:", err);
       toast.error("Error connecting Google account.");
     } finally {
-      setLoading(false);
       setLoadingAction(null);
     }
   };
 
   const handleGoogleDisconnect = async () => {
-    setLoading(true);
     setLoadingAction("disconnect");
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        toast.error("User not authenticated.");
-        return;
-      }
-      const token = await user.getIdToken();
-      const res = await fetch(
-        "https://marketing-automation-43871816946.us-west1.run.app/api/connections/google",
-        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) throw new Error("Failed to disconnect Google");
+      await disconnectIntegration("google");
       sessionStorage.removeItem("googleToastShown");
-      setConnectionLog((prev) => ({ ...prev, google: null }));
+      await loadConnections();
       toast.success("Google account disconnected successfully!");
-    } catch {
+    } catch (err) {
+      console.error("Google disconnect failed:", err);
       toast.error("Error disconnecting Google account.");
     } finally {
-      setLoading(false);
       setLoadingAction(null);
     }
   };
 
-  const fetchConnectionLog = async () => {
+  const loadConnections = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        setConnectionLog({ error: "User not authenticated." });
-        return;
-      }
-
-      const token = await user.getIdToken();
-      const res = await fetch(
-        "https://marketing-automation-43871816946.us-west1.run.app/api/connections",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!res.ok) throw new Error("Failed to fetch connection log");
-
-      const data = await res.json();
-
-      if (data.google.access_token && !connectionLog?.google) {
-        if (!sessionStorage.getItem("googleToastShown")) {
-          toast.success("Google account connected successfully!");
-          sessionStorage.setItem("googleToastShown", "true");
-        }
-      }
-
+      const data = await fetchConnectionLog();
       setConnectionLog(data);
-    } catch {
-      setConnectionLog({ error: "Failed to fetch connection log." });
+
+      if (data?.google?.access_token && !sessionStorage.getItem("googleToastShown")) {
+        toast.success("Google account connected successfully!");
+        sessionStorage.setItem("googleToastShown", "true");
+      }
+    } catch (err) {
+      console.error("Failed to fetch connection log:", err);
+      toast.error("Failed to fetch connection log.");
+    } finally {
+      setLoading(false);
     }
   };
 
-
   useEffect(() => {
-    fetchConnectionLog();
+    loadConnections();
   }, []);
 
   return (
-    <>
-      <>
+    <div className="p-6">
+      {loading ? (
+        <div className="flex justify-center items-center h-[60vh]">
+          <Spinner size="w-16 h-16" />
+        </div>
+      ) : (
         <IntegrationCard
           title="Google"
           description="Connect your Google account to sync and automate."
           isConnected={isConnected}
-          details={{
-            expiry: connectionLog?.google?.expiry_date || ""
-          }}
+          details={{ expiry: connectionLog?.google?.expiry_date || "" }}
           onConnect={handleGoogleConnect}
           onDisconnect={handleGoogleDisconnect}
           loadingAction={loadingAction}
         />
-      </>
-    </>
+      )}
+    </div>
   );
 }
 

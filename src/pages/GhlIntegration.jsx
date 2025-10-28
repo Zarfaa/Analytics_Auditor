@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { auth } from "../firebase";
 import IntegrationCard from "../components/IntegrationCard";
 import toast from "react-hot-toast";
+import Spinner from "../components/Spinner"; 
 
 function GhlIntegration() {
   const [connectionLog, setConnectionLog] = useState(null);
-  const [loadingAction, setLoadingAction] = useState(null);
+  const [loading, setLoading] = useState(true); 
+  const [loadingAction, setLoadingAction] = useState(null); 
   const redirect_uri = import.meta.env.VITE_REDIRECTION_URL;
 
   const fetchConnectionLog = async () => {
@@ -26,9 +28,7 @@ function GhlIntegration() {
           data.ghl.forEach((account) => {
             const key = `ghlToastShown:${account.location_id}`;
             if (account.access_token && !sessionStorage.getItem(key)) {
-              toast.success(
-                `GHL account connected successfully!`
-              );
+              toast.success(`GHL account connected successfully!`);
               sessionStorage.setItem(key, "true");
             }
           });
@@ -43,6 +43,8 @@ function GhlIntegration() {
       console.error(err);
       setConnectionLog({ error: "Failed to fetch connection log." });
       toast.error("Failed to fetch connection log.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,7 +107,6 @@ function GhlIntegration() {
       if (!res.ok) throw new Error("Failed to disconnect GHL account");
 
       sessionStorage.removeItem(`ghlToastShown:${location_id}`);
-
       await fetchConnectionLog();
       toast.success("GHL account disconnected successfully!");
     } catch (err) {
@@ -117,15 +118,23 @@ function GhlIntegration() {
   };
 
   return (
-    <IntegrationCard
-      title="Go High Level"
-      description="Connect your GHL accounts to manage automation."
-      multipleAccounts={connectionLog?.ghl || []}
-      onConnect={handleGhlConnect}
-      onDisconnect={handleGhlDisconnect}
-      addAccountLabel="Add Another GHL Account"
-      loadingAction={loadingAction}
-    />
+    <div className="p-6">
+      {loading ? (
+        <div className="flex justify-center items-center h-[60vh]">
+          <Spinner />
+        </div>
+      ) : (
+        <IntegrationCard
+          title="Go High Level"
+          description="Connect your GHL accounts to manage automation."
+          multipleAccounts={connectionLog?.ghl || []}
+          onConnect={handleGhlConnect}
+          onDisconnect={handleGhlDisconnect}
+          addAccountLabel="Add Another GHL Account"
+          loadingAction={loadingAction}
+        />
+      )}
+    </div>
   );
 }
 
