@@ -5,6 +5,7 @@ import Spinner from "../components/Spinner";
 import ConfirmModal from "../components/ConfirmModal";
 import CreateWorkflowModal from "../components/createModal";
 import * as workflowService from "../service/workflowServices";
+import debounce from "lodash.debounce";
 
 function Workflows() {
   const [workflows, setWorkflows] = useState([]);
@@ -16,7 +17,17 @@ function Workflows() {
   const [editingWorkflow, setEditingWorkflow] = useState(null);
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, workflowId: null, workflowName: "" });
+  const [search, setSearch] = useState("");
+  useEffect(() => {
 
+    const debouncedFetch = debounce(() => {
+      fetchWorkflows(0, search);
+    }, 300);
+
+    debouncedFetch();
+
+    return () => debouncedFetch.cancel();
+  }, [search]);
   const [projects, setProjects] = useState([]);
   const [datasets, setDatasets] = useState([]);
   const [tables, setTables] = useState([]);
@@ -58,16 +69,20 @@ function Workflows() {
   };
 
   const fetchDatasets = async (projectId) => {
-    if (!projectId) return;
+    console.log("Fetching datasets for project:", projectId);
     try {
-      const list = await workflowService.fetchDatasets(projectId);
+      const response = await workflowService.fetchDatasets(projectId);
+      console.log("Response:", response);
+      const list = Array.isArray(response)
+        ? response
+        : response?.datasetIds || [];
+      console.log("Parsed datasets:", list);
       setDatasets(list);
-      setTables([]);
     } catch (err) {
-      toast.error("Failed to fetch datasets");
-      console.error(err);
+      console.error("Dataset fetch error:", err);
     }
   };
+
 
   const fetchTables = async (projectId, dataset) => {
     if (!projectId || !dataset) return;
@@ -80,11 +95,17 @@ function Workflows() {
     }
   };
 
-  const fetchWorkflows = async (newOffset = 0) => {
+  const fetchWorkflows = async (newOffset = 0, searchValue = "") => {
     setLoading(true);
     try {
-      const data = await workflowService.fetchWorkflows(newOffset, limit);
-      setWorkflows(data.data || []);
+      const data = await workflowService.fetchWorkflows(newOffset, limit, searchValue);
+
+      setWorkflows(
+        (data.data || []).map((wf) => ({
+          ...wf,
+          id: wf.id || wf.workflowId,
+        }))
+      );
       setOffset(data.offset || 0);
       setTotalCount(data.totalCount || 0);
       setHasMore(data.hasMore || false);
@@ -96,23 +117,39 @@ function Workflows() {
     }
   };
 
+
+
   const createNewWorkflow = async () => {
     const { workflowName, workflowType, projectId, dataset, table } = newWorkflow;
     if (!workflowName || !workflowType || !projectId || !dataset || !table) {
       toast.error("All fields are required");
       return;
     }
+
     try {
+      setEditingWorkflow(null);
       const createdWorkflow = await workflowService.createWorkflow(newWorkflow);
       toast.success("Workflow created successfully!");
-      setWorkflows((prev) => [createdWorkflow, ...prev]);
+      setWorkflows((prev) => [
+        { ...createdWorkflow, id: createdWorkflow.workflowId },
+        ...prev,
+      ]);
+
       setNewModalOpen(false);
-      setNewWorkflow({ workflowName: "", workflowType: "contacts", projectId: "", dataset: "", table: "" });
+      setNewWorkflow({
+        workflowName: "",
+        workflowType: "contacts",
+        projectId: "",
+        dataset: "",
+        table: "",
+      });
     } catch (err) {
       toast.error("Error creating workflow");
       console.error(err);
     }
   };
+
+
 
   const startEditingWorkflow = async (workflow) => {
     setEditingWorkflow(workflow);
@@ -145,14 +182,20 @@ function Workflows() {
   };
 
   const confirmDeleteWorkflow = (workflow) => {
-    setConfirmModal({ isOpen: true, workflowId: workflow.id, workflowName: workflow.workflowName });
+    setConfirmModal({
+      isOpen: true,
+      workflowId: workflow.id,
+      workflowName: workflow.workflowName,
+    });
   };
 
   const handleDeleteConfirmed = async () => {
     try {
       await workflowService.deleteWorkflow(confirmModal.workflowId);
       toast.success("Workflow deleted successfully!");
-      setWorkflows((prev) => prev.filter((wf) => wf.id !== confirmModal.workflowId));
+      setWorkflows((prev) =>
+        prev.filter((wf) => wf.id !== confirmModal.workflowId)
+      );
     } catch (err) {
       toast.error("Error deleting workflow");
       console.error(err);
@@ -161,24 +204,32 @@ function Workflows() {
     }
   };
 
+
   const runWorkflow = async (workflow) => {
-    toast.loading(`Running ${workflow.workflowName}...`);
+    const toastId = toast.loading(`Running ${workflow.workflowName}...`);
     try {
-      await workflowService.runWorkflow(workflow);
-      toast.success(`${workflow.workflowName} executed successfully!`);
+      const response = await workflowService.runWorkflow(workflow);
+      if (response?.error) {
+        toast.error(`Error: ${response.error}`, { id: toastId });
+        return;
+      }
+      toast.success(`${workflow.workflowName} executed successfully!`, { id: toastId });
     } catch (err) {
-      toast.error(`Error running ${workflow.workflowName}`);
+      toast.error(`Error running ${workflow.workflowName}: ${err.message || err}`, { id: toastId });
       console.error(err);
     }
   };
+
 
   useEffect(() => {
     fetchWorkflows();
   }, []);
 
   useEffect(() => {
+    console.log("🧩 Project selected:", newWorkflow.projectId);
     if (newWorkflow.projectId) fetchDatasets(newWorkflow.projectId);
   }, [newWorkflow.projectId]);
+
 
   useEffect(() => {
     if (newWorkflow.projectId && newWorkflow.dataset) fetchTables(newWorkflow.projectId, newWorkflow.dataset);
@@ -202,29 +253,20 @@ function Workflows() {
       </div>
 
       <div className="flex justify-between items-center mb-6 mt-20">
-        <form className="flex-1 max-w-md">
-          <label htmlFor="default-search" className="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">
-            Search
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <FaSearch />
-            </div>
-            <input
-              type="search"
-              id="default-search"
-              className="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              placeholder="Search Workflows"
-              required
-            />
-            <button
-              type="submit"
-              className="text-white absolute right-2.5 bottom-2.5 bg-primary hover:bg-primary-dark focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-            >
-              Search
-            </button>
+        <div className="flex-1 max-w-md relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <FaSearch />
           </div>
-        </form>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            placeholder="Search workflows by Type, Project ID, or Dataset"
+          />
+        </div>
+
+
 
         <button
           className="ml-4 bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark whitespace-nowrap"
@@ -451,24 +493,16 @@ function Workflows() {
       />
       <CreateWorkflowModal
         isOpen={newModalOpen}
-        onClose={() => setNewModalOpen(false)}
+        onClose={() => {
+          setNewModalOpen(false);
+          setEditingWorkflow(null);
+        }}
         newWorkflow={newWorkflow}
         setNewWorkflow={setNewWorkflow}
         projects={projects}
         datasets={datasets}
         tables={tables}
         createWorkflow={createNewWorkflow}
-        onCreated={(createdWorkflow) => {
-          setWorkflows((prev) => [createdWorkflow, ...prev]);
-          setNewModalOpen(false);
-          setNewWorkflow({
-            workflowName: "",
-            workflowType: "contacts",
-            projectId: "",
-            dataset: "",
-            table: "",
-          });
-        }}
       />
 
 

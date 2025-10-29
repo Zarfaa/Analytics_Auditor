@@ -18,11 +18,11 @@ export const API_ENDPOINTS = {
   DATASETS: `${GBQ_BASE_URL}/api/bigquery/datasets`,
   TABLES: `${GBQ_BASE_URL}/api/bigquery/tables`,
 
-  WORKFLOWS_LIST: `${GBQ_BASE_URL}/api/workflows/test/list`,
+  WORKFLOWS_LIST: `${GBQ_BASE_URL}/api/workflows/list`,
   WORKFLOW_CREATE: `${GBQ_BASE_URL}/api/workflows/create`,
   WORKFLOW_EDIT: `${GBQ_BASE_URL}/api/workflows/edit`,
-  WORKFLOW_DELETE: `${GBQ_BASE_URL}/workflows/delete`,
-  WORKFLOW_RUN_CONTACTS: `${GBQ_BASE_URL}/contacts/run-workflow`,
-  WORKFLOW_RUN_OPPORTUNITIES: `${GBQ_BASE_URL}/opportunities/run-workflow`,
-  WORKFLOW_RUN_CALLREPORTS: `${GBQ_BASE_URL}/call-reports/run-workflow`,
+  WORKFLOW_DELETE: `${GBQ_BASE_URL}/api/workflows/delete`,
+  WORKFLOW_RUN_CONTACTS: `${GBQ_BASE_URL}/api/contacts/run-workflow`,
+  WORKFLOW_RUN_OPPORTUNITIES: `${GBQ_BASE_URL}/api/opportunities/run-workflow`,
+  WORKFLOW_RUN_CALLREPORTS: `${GBQ_BASE_URL}/api/call-reports/run-workflow`,
 };

@@ -19,7 +19,7 @@ export const fetchDatasets = async (projectId) => {
   );
   if (!res.ok) throw new Error("Failed to fetch datasets");
   const data = await res.json();
-  return data.datasets || [];
+ return data.datasetIds || [];
 };
 
 export const fetchTables = async (projectId, dataset) => {
@@ -30,18 +30,25 @@ export const fetchTables = async (projectId, dataset) => {
   );
   if (!res.ok) throw new Error("Failed to fetch tables");
   const data = await res.json();
-  return data.tables || [];
+  return data.tableIds || [];
 };
 
-export const fetchWorkflows = async (offset = 0, limit = 50) => {
+export const fetchWorkflows = async (offset = 0, limit = 50, search = "") => {
   const token = await getAuthToken();
-  const res = await fetch(
-    `${API_ENDPOINTS.WORKFLOWS_LIST}?offset=${offset}&limit=${limit}`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
+  const query = new URLSearchParams({
+    offset,
+    limit,
+    search,
+  });
+
+  const res = await fetch(`${API_ENDPOINTS.WORKFLOWS_LIST}?${query.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
   if (!res.ok) throw new Error("Failed to fetch workflows");
   return res.json();
 };
+
 
 export const createWorkflow = async (workflow) => {
   const token = await getAuthToken();

@@ -6,15 +6,14 @@ function CreateWorkflowModal({
   projects = [],
   datasets = [],
   tables = [],
-  createWorkflow,
-  onCreated,
+  createWorkflow
 }) {
   if (!isOpen) return null;
 
-  const handleCreate = async () => {
-    const result = await createWorkflow();
-    if (result && onCreated) onCreated(result);
-  };
+const handleCreate = async () => {
+  await createWorkflow();
+};
+
 
   const inputClass =
     "w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition";
