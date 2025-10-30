@@ -213,7 +213,7 @@ function Workflows() {
         toast.error(`Error: ${response.error}`, { id: toastId });
         return;
       }
-      toast.success(`${workflow.workflowName} executed successfully!`, { id: toastId });
+      toast.success(response?.summaryMessage || `${workflow.workflowName} executed successfully!`, { id: toastId });
     } catch (err) {
       toast.error(`Error running ${workflow.workflowName}: ${err.message || err}`, { id: toastId });
       console.error(err);
